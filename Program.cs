@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace AdventOfCode2019Day5
 {
-    enum OpCode { Add = 1, Multiply = 2, Store = 3, Output = 4, End = 99, }
+    enum OpCode { Add = 1, Multiply = 2, Store = 3, Output = 4, JumpIfTrue = 5, JumpIfFalse = 6, LessThan = 7, Equals = 8, End = 99, }
     enum OpCodeMode { Position = 0, Immediate = 1 }
 
     class Program
@@ -114,6 +114,134 @@ namespace AdventOfCode2019Day5
                         var output = firstOperandMode == OpCodeMode.Immediate ? program[index + 1] : program[program[index + 1]];
                         Console.WriteLine($"Output for memory location {program[index + 1]}: {output}");
                         return (index + 2, false);
+                    }
+                case OpCode.JumpIfTrue:
+                    {
+                        var firstOperandMode = (OpCodeMode)((possibleOpCode / 100) % 10);
+                        var secondOperandMode = (OpCodeMode)((possibleOpCode / 1000) % 10);
+                        int testCondition = 0;
+                        if (firstOperandMode == OpCodeMode.Immediate)
+                        {
+                            testCondition = program[index + 1];
+                        }
+                        else if (firstOperandMode == OpCodeMode.Position)
+                        {
+                            testCondition = program[program[index + 1]];
+                        }
+                        int newIndex = 0;
+                        if (secondOperandMode == OpCodeMode.Immediate)
+                        {
+                            newIndex = program[index + 2];
+                        }
+                        else if (secondOperandMode == OpCodeMode.Position)
+                        {
+                            newIndex = program[program[index + 2]];
+                        }
+                        if (testCondition != 0)
+                        {
+                            return (newIndex, false);
+                        }
+                        else
+                        {
+                            return (index + 3, false);
+                        }
+                    }
+                case OpCode.JumpIfFalse:
+                    {
+                        var firstOperandMode = (OpCodeMode)((possibleOpCode / 100) % 10);
+                        var secondOperandMode = (OpCodeMode)((possibleOpCode / 1000) % 10);
+                        int testCondition = 0;
+                        if (firstOperandMode == OpCodeMode.Immediate)
+                        {
+                            testCondition = program[index + 1];
+                        }
+                        else if (firstOperandMode == OpCodeMode.Position)
+                        {
+                            testCondition = program[program[index + 1]];
+                        }
+                        int newIndex = 0;
+                        if (secondOperandMode == OpCodeMode.Immediate)
+                        {
+                            newIndex = program[index + 2];
+                        }
+                        else if (secondOperandMode == OpCodeMode.Position)
+                        {
+                            newIndex = program[program[index + 2]];
+                        }
+                        if (testCondition == 0)
+                        {
+                            return (newIndex, false);
+                        }
+                        else
+                        {
+                            return (index + 3, false);
+                        }
+                    }
+                case OpCode.LessThan:
+                    {
+                        var firstOperandMode = (OpCodeMode)((possibleOpCode / 100) % 10);
+                        var secondOperandMode = (OpCodeMode)((possibleOpCode / 1000) % 10);
+                        int firstParameter = 0;
+                        if (firstOperandMode == OpCodeMode.Immediate)
+                        {
+                            firstParameter = program[index + 1];
+                        }
+                        else if (firstOperandMode == OpCodeMode.Position)
+                        {
+                            firstParameter = program[program[index + 1]];
+                        }
+                        int secondParameter = 0;
+                        if (secondOperandMode == OpCodeMode.Immediate)
+                        {
+                            secondParameter = program[index + 2];
+                        }
+                        else if (secondOperandMode == OpCodeMode.Position)
+                        {
+                            secondParameter = program[program[index + 2]];
+                        }
+                        if (firstParameter < secondParameter)
+                        {
+                            program[program[index + 3]] = 1;
+                            return (index + 4, false);
+                        }
+                        else
+                        {
+                            program[program[index + 3]] = 0;
+                            return (index + 4, false);
+                        }
+                    }
+                case OpCode.Equals:
+                    {
+                        var firstOperandMode = (OpCodeMode)((possibleOpCode / 100) % 10);
+                        var secondOperandMode = (OpCodeMode)((possibleOpCode / 1000) % 10);
+                        int firstParameter = 0;
+                        if (firstOperandMode == OpCodeMode.Immediate)
+                        {
+                            firstParameter = program[index + 1];
+                        }
+                        else if (firstOperandMode == OpCodeMode.Position)
+                        {
+                            firstParameter = program[program[index + 1]];
+                        }
+                        int secondParameter = 0;
+                        if (secondOperandMode == OpCodeMode.Immediate)
+                        {
+                            secondParameter = program[index + 2];
+                        }
+                        else if (secondOperandMode == OpCodeMode.Position)
+                        {
+                            secondParameter = program[program[index + 2]];
+                        }
+                        if (firstParameter == secondParameter)
+                        {
+                            program[program[index + 3]] = 1;
+                            return (index + 4, false);
+                        }
+                        else
+                        {
+                            program[program[index + 3]] = 0;
+                            return (index + 4, false);
+                        }
                     }
                 case OpCode.End:
                 default:

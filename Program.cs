@@ -5,7 +5,8 @@ using System.Linq;
 
 namespace AdventOfCode2019Day5
 {
-    enum OpCode { Add = 1, Multiply = 2, End = 99 }
+    enum OpCode { Add = 1, Multiply = 2, Store = 3, Output = 4, End = 99, }
+    enum OpCodeMode { Position = 0, Immediate = 1 }
 
     class Program
     {
@@ -22,20 +23,7 @@ namespace AdventOfCode2019Day5
                         inputPart1 = strProgram.Split(',').Select(int.Parse).ToList();
                     }
                     var inputPart2 = CopyIntProgram(in inputPart1);
-                    // Get Part 1 Answer
-                    SetNounAndVerb(ref inputPart1);
                     ProcessIntCodeProgram(ref inputPart1);
-                    Console.WriteLine($"Part 1: The value left at position 0 is {inputPart1[0]}.");
-                    // Get Part2 Answer
-                    Tuple<int, int>? nounAndVerb = FindNounAndVerb(ref inputPart2);
-                    if (nounAndVerb != null)
-                    {
-                        Console.WriteLine($"Part 2: The noun is {nounAndVerb.Item1}.\nThe verb is {nounAndVerb.Item2}.\n100 * noun + verb = {100 * nounAndVerb.Item1 + nounAndVerb.Item2}.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Could not find the noun and verb for that target.");
-                    }
                 }
             }
             catch (IOException e)
@@ -50,20 +38,86 @@ namespace AdventOfCode2019Day5
             var programFinished = false;
             while (index < program.Count && !programFinished)
             {
-                switch ((OpCode)program[index])
-                {
-                    case OpCode.Add:
-                        program[program[index + 3]] = program[program[index + 1]] + program[program[index + 2]];
-                        break;
-                    case OpCode.Multiply:
-                        program[program[index + 3]] = program[program[index + 1]] * program[program[index + 2]];
-                        break;
-                    case OpCode.End:
-                    default:
-                        programFinished = true;
-                        break;
-                }
-                index += 4;
+                (index, programFinished) = ProcessOpCode(ref program, program[index], index, programFinished);
+            }
+        }
+
+        static (int index, bool programFinished) ProcessOpCode(ref List<int> program, int possibleOpCode, int index, bool programFinished)
+        {
+            var opCode = (OpCode)possibleOpCode == OpCode.End ? OpCode.End : (OpCode)(possibleOpCode % 10);
+            if ((OpCode)possibleOpCode == OpCode.End)
+            {
+                return (index + 1, true);
+            }
+            switch (opCode)
+            {
+                case OpCode.Add:
+                    {
+                        var firstOperandMode = (OpCodeMode)((possibleOpCode / 100) % 10);
+                        var secondOperandMode = (OpCodeMode)((possibleOpCode / 1000) % 10);
+                        var sum = 0; ;
+                        if (firstOperandMode == OpCodeMode.Position)
+                        {
+                            sum += program[program[index + 1]];
+                        }
+                        else if (firstOperandMode == OpCodeMode.Immediate)
+                        {
+                            sum += program[index + 1];
+                        }
+
+                        if (secondOperandMode == OpCodeMode.Position)
+                        {
+                            sum += program[program[index + 2]];
+                        }
+                        else if (secondOperandMode == OpCodeMode.Immediate)
+                        {
+                            sum += program[index + 2];
+                        }
+                        program[program[index + 3]] = sum;
+                        return (index + 4, false);
+                    }
+                case OpCode.Multiply:
+                    {
+                        var firstOperandMode = (OpCodeMode)((possibleOpCode / 100) % 10);
+                        var secondOperandMode = (OpCodeMode)((possibleOpCode / 1000) % 10);
+                        var product = 1;
+                        if (firstOperandMode == OpCodeMode.Position)
+                        {
+                            product *= program[program[index + 1]];
+                        }
+                        else if (firstOperandMode == OpCodeMode.Immediate)
+                        {
+                            product *= program[index + 1];
+                        }
+                        if (secondOperandMode == OpCodeMode.Position)
+                        {
+                            product *= program[program[index + 2]];
+                        }
+                        else if (secondOperandMode == OpCodeMode.Immediate)
+                        {
+                            product *= program[index + 2];
+                        }
+                        program[program[index + 3]] = product;
+                        return (index + 4, false);
+                    }
+                case OpCode.Store:
+                    Console.Write($"Input for memory location {program[index + 1]}: ");
+                    var input = Console.ReadLine();
+                    if (Int32.TryParse(input, out int userInput))
+                    {
+                        program[program[index + 1]] = userInput;
+                    }
+                    return (index + 2, false);
+                case OpCode.Output:
+                    {
+                        var firstOperandMode = (OpCodeMode)((possibleOpCode / 100) % 10);
+                        var output = firstOperandMode == OpCodeMode.Immediate ? program[index + 1] : program[program[index + 1]];
+                        Console.WriteLine($"Output for memory location {program[index + 1]}: {output}");
+                        return (index + 2, false);
+                    }
+                case OpCode.End:
+                default:
+                    return (index + 1, true);
             }
         }
 
@@ -80,45 +134,15 @@ namespace AdventOfCode2019Day5
             Console.WriteLine();
         }
 
-        static void SetNounAndVerb(ref List<int> program, int noun = 12, int verb = 2)
-        {
-            program[1] = noun;
-            program[2] = verb;
-        }
-
-        static Tuple<int, int>? FindNounAndVerb(ref List<int> program, int target = 19690720)
-        {
-            var originalProgram = CopyIntProgram(in program);
-            var foundNoun = 0;
-            var foundVerb = 0;
-            bool foundNounAndVerb = false;
-            for (int noun = 0; noun <= 99 && !foundNounAndVerb; noun++)
-            {
-                for (int verb = 0; verb <= 99 && !foundNounAndVerb; verb++)
-                {
-                    SetNounAndVerb(ref program, noun, verb);
-                    ProcessIntCodeProgram(ref program);
-                    if (program[0] == target)
-                    {
-                        foundNounAndVerb = true;
-                        foundNoun = noun;
-                        foundVerb = verb;
-                    }
-                    program = CopyIntProgram(in originalProgram);
-                }
-            }
-            return foundNounAndVerb ? Tuple.Create(foundNoun, foundVerb) : null;
-        }
-
         static List<int> CopyIntProgram(in List<int> program)
         {
-             var newProgram = new List<int>();
-             foreach(var code in program)
-             {
-                 newProgram.Add(code);
-             }
+            var newProgram = new List<int>();
+            foreach (var code in program)
+            {
+                newProgram.Add(code);
+            }
 
-             return newProgram;
+            return newProgram;
         }
     }
 }
